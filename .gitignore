@@ -1,0 +1,17 @@
+# Ignorar dependencias de Node
+node_modules/
+
+# Archivos de caché de Vite
+.vite/
+
+# Archivos de build de React
+dist/
+build/
+
+# Archivos de log
+npm-debug.log*
+yarn-debug.log*
+
+# Archivos de entorno (¡nunca subas contraseñas!)
+.env
+.env.local
