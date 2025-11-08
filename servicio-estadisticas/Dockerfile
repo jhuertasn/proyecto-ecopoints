@@ -1,22 +1,31 @@
-# Dockerfile
+# servicio-estadisticas/Dockerfile
 
-# 1. Usamos una imagen base ligera de Node.js
-FROM node:18-alpine
+# --- Etapa 1: Construcción (Usando Maven) ---
+# Usamos una imagen de Maven que incluye Java 17
+FROM maven:3.8.5-eclipse-temurin-17 AS builder
 
-# 2. Establecemos el directorio de trabajo dentro del contenedor
-WORKDIR /usr/src/app
+# Establecemos el directorio de trabajo
+WORKDIR /build
 
-# 3. Copiamos el package.json para instalar dependencias
-COPY package*.json ./
+# Copiamos solo los archivos de dependencias y las descargamos
+# Esto aprovecha el caché de Docker
+COPY pom.xml .
+COPY src ./src
 
-# 4. Ejecutamos npm install
-RUN npm install
+# Construimos el .jar final
+RUN mvn package -DskipTests
 
-# 5. Copiamos el resto del código de nuestra aplicación
-COPY . .
+# --- Etapa 2: Ejecución (Usando solo Java Runtime) ---
+# Usamos una imagen ligera que solo tiene Java 17 para correr
+FROM eclipse-temurin:17-jre-alpine
 
-# 6. Exponemos el puerto que definimos en index.js
+WORKDIR /app
+
+# Copiamos el .jar construido desde la etapa anterior
+COPY --from=builder /build/target/*.jar app.jar
+
+# Exponemos el puerto de nuestra API
 EXPOSE 3005
 
-# 7. El comando para iniciar la aplicación cuando el contenedor arranque
-CMD [ "node", "index.js" ]
+# El comando para iniciar el servicio
+ENTRYPOINT ["java", "-jar", "app.jar"]

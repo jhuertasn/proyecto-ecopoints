@@ -34,7 +34,9 @@ app.post('/publicar-evento', (req, res) => {
   const exchange = 'eventos_entregas';
 
   // Publica el mensaje al exchange
-  canal.publish(exchange, '', Buffer.from(JSON.stringify(evento)));
+  canal.publish(exchange, '', Buffer.from(JSON.stringify(evento)), { 
+  contentType: 'application/json' 
+});
 
   console.log(`[Publicador] Evento publicado: ${JSON.stringify(evento)}`);
   res.status(202).send({ message: 'Evento publicado exitosamente' });
