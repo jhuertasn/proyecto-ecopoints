@@ -7,34 +7,43 @@ services:
     build: ./ecopoints-frontend
     ports:
       - "5173:80"
+
+  # 2. El Servicio de Usuarios (¡AÑADIDO!)
+  usuarios:
+    build: ./servicio-usuarios
+    ports:
+      - "9090:9090" # Usamos el puerto 9090 como dice su Dockerfile
     
-  # 2. El Publicador
+  # 3. El Publicador
   publicador:
     build: ./servicio-publicador-demo
     ports:
       - "3006:3006"
-    # CAMBIO IMPORTANTE: Espera a que RabbitMQ esté saludable
     depends_on:
       rabbitmq:
         condition: service_healthy
 
-  # 3. El Consumidor (Tu Servicio)
+  # 4. El Servicio de Puntos Verdes
+  puntos-verdes:
+    build: ./servicio-puntos-verdes
+    ports:
+      - "3007:3007" 
+
+  # 5. El Consumidor (Tu Servicio)
   estadisticas:
     build: ./servicio-estadisticas
     ports:
       - "3005:3005"
-    # CAMBIO IMPORTANTE: Espera a que RabbitMQ esté saludable
     depends_on:
       rabbitmq:
         condition: service_healthy
 
-  # 4. El Mensajero
+  # 6. El Mensajero
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
-    # NUEVA SECCIÓN: Esta prueba verifica que RabbitMQ esté listo
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s
