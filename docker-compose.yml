@@ -8,26 +8,26 @@ services:
     ports:
       - "5173:80"
 
-  # 2. El Servicio de Usuarios (¡AÑADIDO!)
+  # 2. El Servicio de Usuarios
   usuarios:
     build: ./servicio-usuarios
     ports:
-      - "9090:9090" # Usamos el puerto 9090 como dice su Dockerfile
+      - "9090:9090"
     
-  # 3. El Publicador
-  publicador:
-    build: ./servicio-publicador-demo
-    ports:
-      - "3006:3006"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-
-  # 4. El Servicio de Puntos Verdes
+  # 3. El Servicio de Puntos Verdes
   puntos-verdes:
     build: ./servicio-puntos-verdes
     ports:
       - "3007:3007" 
+
+  # 4. EL NUEVO SERVICIO DE ENTREGAS (Reemplaza al publicador-demo)
+  entregas:
+    build: ./servicio_entrega
+    ports:
+      - "3009:3009"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   # 5. El Consumidor (Tu Servicio)
   estadisticas:

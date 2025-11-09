@@ -1,0 +1,23 @@
+
+Listar usuarios:
+[GET] http://localhost:9090/usuario/all
+
+
+Guardar usuarios:
+[POST] http://localhost:9090/usuario/registro
+
+{
+  "usuario": "jorge",
+  "password": "miContraseña123",
+  "correo":"jesusito@gmail.com",
+  "rol":"Recolector"
+}
+
+
+Login Usuario:
+[POST] http://localhost:9090/usuario/login
+
+{
+  "usuario": "jorge",
+  "password": "miContraseña123",
+}

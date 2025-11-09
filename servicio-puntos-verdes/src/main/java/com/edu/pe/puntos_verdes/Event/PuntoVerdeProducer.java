@@ -13,9 +13,9 @@ public class PuntoVerdeProducer {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void sendPuntoVerdeCreatedEvent(PuntoVerdeCreatedEvent event) {
-        // LÍNEA CORREGIDA:
-rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_PUNTOS_VERDES, "", event);
+public void sendPuntoVerdeCreatedEvent(PuntoVerdeCreatedEvent event) {
+        // Asegúrate que apunte al exchange, no a la cola.
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_PUNTOS_VERDES, "", event); 
         System.out.println("✅ Evento PuntoVerde creado: " + event.getNombre());
     }
 }
