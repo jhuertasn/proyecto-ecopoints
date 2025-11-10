@@ -13,12 +13,12 @@ services:
     build: ./servicio-usuarios
     ports:
       - "9090:9090"
-    
+
   # 3. El Servicio de Puntos Verdes
   puntos-verdes:
     build: ./servicio-puntos-verdes
     ports:
-      - "3007:3007" 
+      - "3007:3007"
 
   # 4. EL NUEVO SERVICIO DE ENTREGAS (Reemplaza al publicador-demo)
   entregas:
@@ -38,14 +38,23 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # 6. El Mensajero
+  # 6. EL NUEVO SERVICIO DE RECOMPENSAS
+  recompensas:
+    build: ./servicio-recompensas # Asegúrate que el nombre de la carpeta sea este
+    ports:
+      - "3004:3004" # Puerto que te indicó tu compañero
+    depends_on:
+      rabbitmq:
+        condition: service_healthy # Debe esperar a que RabbitMQ esté listo
+
+  # 7. El Mensajero
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
     healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
+      test: [ "CMD", "rabbitmqctl", "status" ]
       interval: 10s
       timeout: 5s
       retries: 5
