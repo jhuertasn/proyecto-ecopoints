@@ -1,18 +1,24 @@
 package com.edu.pe.servicio_usuarios.service;
 
-import java.util.Collection;
-import java.util.Optional;
+import java.util.List;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
 import com.edu.pe.servicio_usuarios.event.EventUsuario;
-import com.edu.pe.servicio_usuarios.repository.UsuarioRepositorio;
+import com.edu.pe.servicio_usuarios.model.Usuario; // Usamos la Entidad MySQL
+import com.edu.pe.servicio_usuarios.repository.UsuarioRepository; // El repo JPA
 
 @Service
 public class UsuarioService {
 
-    private final RabbitTemplate rabbitTemplate;
-    private final UsuarioRepositorio usuarioRepositorio;
+    @Autowired
+    private UsuarioRepository usuarioRepository; // Conexión a MySQL
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @Value("${app.rabbitmq.exchange}")
     private String exchange;
@@ -20,49 +26,44 @@ public class UsuarioService {
     @Value("${app.rabbitmq.routing-key}")
     private String routingKey;
 
-    public UsuarioService(RabbitTemplate rabbitTemplate, UsuarioRepositorio usuarioRepositorio) {
-        this.rabbitTemplate = rabbitTemplate;
-        this.usuarioRepositorio = usuarioRepositorio;
-    }
-
+    // --- CREAR USUARIO (Guarda en MySQL y avisa a RabbitMQ) ---
     public void createUsuario(String id, String usuario, String password, String correo, String rol) {
-        System.out.println("[UsuarioService] usuario creado: " + usuario);
-        System.out.println("[UsuarioService] password creado: " + password);
-        System.out.println("[UsuarioService] rol creado: " + rol);
+        System.out.println("[UsuarioService] Creando usuario en MySQL: " + usuario);
 
+        // 1. Crear la Entidad para la BD
+        Usuario nuevoUsuario = new Usuario(id, usuario, password, correo, rol);
+        
+        // 2. Guardar en MySQL (¡Aquí ocurre la persistencia real!)
+        usuarioRepository.save(nuevoUsuario);
+
+        // 3. Crear el evento para RabbitMQ (Opcional, pero bueno para la arquitectura)
         EventUsuario event = new EventUsuario(id, usuario, password, correo, rol);
-        usuarioRepositorio.save(event);
-
-        rabbitTemplate.convertAndSend(exchange, routingKey, event);
-        System.out.println("♥️ Evento enviado a Rabbit MQ con el usuario " + event.getUsuario());
+        try {
+            rabbitTemplate.convertAndSend(exchange, routingKey, event);
+            System.out.println("♥️ Evento enviado a Rabbit MQ con el usuario " + usuario);
+        } catch (Exception e) {
+            System.err.println("⚠️ No se pudo enviar a RabbitMQ (pero sí se guardó en BD): " + e.getMessage());
+        }
     }
 
-    public EventUsuario loginUsuario(String usuario, String password) {
-        System.out.println("[UsuarioService] Intentando login para: " + usuario);
+    // --- LOGIN (Consulta directa a MySQL) ---
+    public Usuario loginUsuario(String usuario, String password) {
+        System.out.println("[UsuarioService] Intentando login en DB para: " + usuario);
 
-        if (!usuarioRepositorio.existsByUsuario(usuario)) {
-            throw new RuntimeException("Error: Usuario o Contraseña incorrecta.");
-        }
-        Optional<EventUsuario> usuarioEncontradoOpt = usuarioRepositorio.findByUsuario(usuario);
-        if (usuarioEncontradoOpt.isEmpty()) {
-            throw new RuntimeException("Error: Usuario o Contraseña incorrecta.");
-        }
+        // 1. Usamos el método mágico de JPA para buscar
+        Usuario usuarioEncontrado = usuarioRepository.findByUsuarioAndPassword(usuario, password);
 
-        EventUsuario usuarioEncontrado = usuarioEncontradoOpt.get();
-
-        String hashedPasswordInput = UsuarioRepositorio.hashPassword(password);
-
-        if (!usuarioEncontrado.getPassword().equals(hashedPasswordInput)) {
+        // 2. Si es null, es que no existe o la contraseña está mal
+        if (usuarioEncontrado == null) {
             throw new RuntimeException("Error: Usuario o Contraseña incorrecta.");
         }
 
         return usuarioEncontrado;
     }
 
-     // --- LÓGICA DE LISTAR ---
-    // "y otro de usuarios listas"
-    public Collection<EventUsuario> getAllUsuarios() {
-        System.out.println("[UsuarioService] Obteniendo la lista de usuarios en memoria");
-        return usuarioRepositorio.findAll();
+    // --- LISTAR TODOS (Desde MySQL) ---
+    public List<Usuario> getAllUsuarios() {
+        System.out.println("[UsuarioService] Obteniendo usuarios de la Base de Datos...");
+        return usuarioRepository.findAll();
     }
 }

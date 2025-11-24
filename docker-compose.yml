@@ -1,4 +1,3 @@
-# docker-compose.yml (Versión Corregida)
 version: '3.8'
 
 services:
@@ -20,7 +19,7 @@ services:
     ports:
       - "3007:3007"
 
-  # 4. EL NUEVO SERVICIO DE ENTREGAS (Reemplaza al publicador-demo)
+  # 4. El Servicio de Entregas
   entregas:
     build: ./servicio_entrega
     ports:
@@ -29,7 +28,7 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # 5. El Consumidor (Tu Servicio)
+  # 5. El Consumidor (Estadísticas)
   estadisticas:
     build: ./servicio-estadisticas
     ports:
@@ -38,16 +37,16 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # 6. EL NUEVO SERVICIO DE RECOMPENSAS
+  # 6. El Servicio de Recompensas
   recompensas:
-    build: ./servicio-recompensas # Asegúrate que el nombre de la carpeta sea este
+    build: ./servicio-recompensas
     ports:
-      - "3004:3004" # Puerto que te indicó tu compañero
+      - "3004:3004"
     depends_on:
       rabbitmq:
-        condition: service_healthy # Debe esperar a que RabbitMQ esté listo
+        condition: service_healthy
 
-  # 7. El Mensajero
+  # 7. El Mensajero (RabbitMQ) - OPTIMIZADO
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -55,6 +54,8 @@ services:
       - "15672:15672"
     healthcheck:
       test: [ "CMD", "rabbitmqctl", "status" ]
-      interval: 10s
-      timeout: 5s
+      interval: 20s        # Chequear cada 20s (antes 10s) para no saturar
+      timeout: 15s         # Darle 15s para responder (antes 5s)
       retries: 5
+      start_period: 40s    # ¡NUEVO! No molestar a RabbitMQ los primeros 40s
+

@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.edu.pe.servicio_usuarios.event.EventUsuario;
+// IMPORTANTE: Importamos la Entidad Usuario (MySQL), no el Evento
+import com.edu.pe.servicio_usuarios.model.Usuario;
 import com.edu.pe.servicio_usuarios.service.UsuarioService;
 
 @RestController
@@ -40,8 +41,9 @@ public class UsuarioController {
         if (correo == null || !correo.contains("@")) {
             return ResponseEntity.badRequest().body("🔴 Correo inválido");
         }
-        if (rol == null || (!rol.equals("Recolector") && !rol.equals("Ciudadano"))) {
-            return ResponseEntity.badRequest().body("🔴 El rol debe ser 'Recolector' o 'Ciudadano'");
+        // ACTUALIZACIÓN: Agregamos "Municipalidad" a los roles permitidos
+        if (rol == null || (!rol.equals("Recolector") && !rol.equals("Ciudadano") && !rol.equals("Municipalidad"))) {
+            return ResponseEntity.badRequest().body("🔴 El rol debe ser 'Recolector', 'Ciudadano' o 'Municipalidad'");
         }
 
         // Generar ID único para usuario
@@ -62,7 +64,8 @@ public class UsuarioController {
         }
 
         try {
-            EventUsuario usuarioEncontrado = usuarioService.loginUsuario(usuario, password);
+            // CAMBIO: Ahora recibimos un objeto 'Usuario' (Entidad), no 'EventUsuario'
+            Usuario usuarioEncontrado = usuarioService.loginUsuario(usuario, password);
             return ResponseEntity.ok(usuarioEncontrado);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
@@ -70,8 +73,9 @@ public class UsuarioController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<Collection<EventUsuario>> obtenerTodosUsuarios() {
-        Collection<EventUsuario> listaUsuarios = usuarioService.getAllUsuarios();
+    // CAMBIO: Devolvemos una colección de 'Usuario'
+    public ResponseEntity<Collection<Usuario>> obtenerTodosUsuarios() {
+        Collection<Usuario> listaUsuarios = usuarioService.getAllUsuarios();
         return ResponseEntity.ok(listaUsuarios);
     }
 }
