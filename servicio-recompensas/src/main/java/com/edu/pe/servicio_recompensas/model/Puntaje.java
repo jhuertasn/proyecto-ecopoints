@@ -4,18 +4,14 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "canjes")
+@Table(name = "puntajes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Canje {
+public class Puntaje {
     @Id
-    private String id;
-    private String premioId;
     private String usuarioId;
-    private int puntosUtilizados;
-    private LocalDateTime fechaCanje;
+    private int puntosTotal;
 }

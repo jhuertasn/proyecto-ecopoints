@@ -1,54 +1,53 @@
-import React from 'react';
+// src/views/DashboardMunicipalidad.jsx
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Zap, Gift, Globe, Umbrella, Award } from 'lucide-react';
-
 import NavbarMunicipalidad from '../components/NavbarMunicipalidad';
 
-// Datos simulados
-const entregasData = [
-  { distrito: 'Lima', serie1: 85, serie2: 72 },
-  { distrito: 'Callao', serie1: 65, serie2: 58 },
-  { distrito: 'Miraflores', serie1: 92, serie2: 88 },
-  { distrito: 'San Isidro', serie1: 78, serie2: 70 },
-  { distrito: 'Surco', serie1: 82, serie2: 75 }
-];
-
-const materialData = [
-  { mes: 'Enero', kg: 152 },
-  { mes: 'Febrero', kg: 234 },
-  { mes: 'Marzo', kg: 187 },
-  { mes: 'Abril', kg: 267 },
-  { mes: 'Mayo', kg: 341 }
-];
-
-const ciudadanosData = [
-  { distrito: 'Lima', serie1: 95, serie2: 88 },
-  { distrito: 'Callao', serie1: 72, serie2: 65 },
-  { distrito: 'Miraflores', serie1: 84, serie2: 78 },
-  { distrito: 'San Isidro', serie1: 91, serie2: 85 },
-  { distrito: 'Surco', serie1: 88, serie2: 80 }
-];
-
-const puntosVerdesData = [
-  { mes: 'Octubre', units: 153 },
-  { mes: 'Noviembre', units: 234 },
-  { mes: 'Diciembre', units: 187 },
-  { mes: 'Enero', units: 256 },
-  { mes: 'Febrero', units: 304 }
-];
-
-const recompensasData = [
-  { mes: 'Octubre', units: 152 },
-  { mes: 'Noviembre', units: 234 },
-  { mes: 'Diciembre', units: 187 },
-  { mes: 'Enero', units: 256 },
-  { mes: 'Febrero', units: 264 }
-];
+// --- Datos simulados (Se mantienen para lo que no tiene backend) ---
+const entregasData = [ { distrito: 'Lima', serie1: 85, serie2: 72 }, { distrito: 'Callao', serie1: 65, serie2: 58 } ];
+const ciudadanosData = [ { distrito: 'Lima', serie1: 95, serie2: 88 }, { distrito: 'Callao', serie1: 72, serie2: 65 } ];
+const puntosVerdesData = [ { mes: 'Octubre', units: 153 }, { mes: 'Noviembre', units: 234 } ];
+const recompensasData = [ { mes: 'Octubre', units: 152 }, { mes: 'Noviembre', units: 234 } ];
 
 const DashboardMunicipalidad = () => {
+  // Estado inicial seguro (con valores en 0 para evitar errores)
+  const [stats, setStats] = useState({
+    total_entregas: 0,
+    total_kg_reciclados: 0,
+    materiales_kg: { plastico: 0, vidrio: 0, papel: 0, otro: 0 }
+  });
+
+  const [cargando, setCargando] = useState(true);
+
+  // Cargar datos del backend
+  useEffect(() => {
+    fetch('/api/estadisticas/globales')
+      .then(res => {
+          if (!res.ok) throw new Error("Error en la respuesta");
+          return res.json();
+      })
+      .then(data => {
+          console.log("Estadísticas cargadas:", data);
+          // Aseguramos que materiales_kg exista, si no, ponemos un objeto vacío
+          if (!data.materiales_kg) data.materiales_kg = {}; 
+          setStats(data);
+      })
+      .catch(err => console.error("Error cargando estadísticas:", err))
+      .finally(() => setCargando(false));
+  }, []);
+
+  // Preparar datos para el gráfico (con protección || 0)
+  const materialChartData = [
+    { nombre: 'Plástico', kg: stats.materiales_kg?.plastico || 0 },
+    { nombre: 'Vidrio', kg: stats.materiales_kg?.vidrio || 0 },
+    { nombre: 'Papel', kg: stats.materiales_kg?.papel || 0 },
+    { nombre: 'Otro', kg: stats.materiales_kg?.otro || 0 },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-     <NavbarMunicipalidad />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <NavbarMunicipalidad />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-400 to-green-500 px-6 py-16">
@@ -56,217 +55,127 @@ const DashboardMunicipalidad = () => {
           <div className="text-white max-w-xl">
             <h1 className="text-5xl font-bold mb-4">Municipalidad</h1>
             <p className="text-lg opacity-90">
-              Experience seamless financial management with our secure and 
-              user-friendly banking solutions. Access your accounts anytime, 
-              anywhere.
+              Visualiza los datos y estadísticas clave del programa de reciclaje en tiempo real.
             </p>
           </div>
-          <div className="text-9xl">
-            ♻️
-          </div>
+          <div className="text-9xl">♻️</div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 flex-grow">
+        
+        {/* Resumen Numérico (Datos Reales) */}
+        <div className="grid grid-cols-2 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-lg shadow text-center border-l-4 border-blue-500">
+                <h3 className="text-4xl font-bold text-blue-900">{cargando ? "..." : stats.total_entregas}</h3>
+                <p className="text-gray-500 font-semibold uppercase text-sm mt-2">Entregas Totales</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow text-center border-l-4 border-green-500">
+                <h3 className="text-4xl font-bold text-green-600">{cargando ? "..." : stats.total_kg_reciclados} kg</h3>
+                <p className="text-gray-500 font-semibold uppercase text-sm mt-2">Total Reciclado</p>
+            </div>
+        </div>
+
         {/* Primera fila de gráficos */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Total de entregas */}
+          {/* Total de entregas (Simulado) */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Zap className="text-blue-600" size={24} />
-              </div>
-            </div>
-            <h3 className="text-center text-blue-900 font-semibold mb-2">
-              Total de entregas registradas en el distrito.
-            </h3>
-            <p className="text-center text-sm text-gray-600 mb-4">Comparación</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={entregasData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="distrito" type="category" width={80} style={{ fontSize: '12px' }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="serie1" fill="#60a5fa" name="Serie 1" />
-                <Bar dataKey="serie2" fill="#1e40af" name="Serie 2" />
-              </BarChart>
-            </ResponsiveContainer>
+             <div className="flex justify-center mb-4"><div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><Zap className="text-blue-600" size={24} /></div></div>
+             <h3 className="text-center text-blue-900 font-semibold mb-2">Total de entregas por distrito</h3>
+             <ResponsiveContainer width="100%" height={200}>
+               <BarChart data={entregasData} layout="vertical"><CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="distrito" type="category" width={80} style={{ fontSize: '12px' }} /><Tooltip /><Legend /><Bar dataKey="serie1" fill="#60a5fa" /><Bar dataKey="serie2" fill="#1e40af" /></BarChart>
+             </ResponsiveContainer>
           </div>
 
-          {/* Cantidad total de material */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          {/* --- GRÁFICO REAL: MATERIALES --- */}
+          <div className="bg-white rounded-lg shadow-md p-6 border-2 border-green-100">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Gift className="text-blue-600" size={24} />
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <Gift className="text-green-600" size={24} />
               </div>
             </div>
-            <h3 className="text-center text-blue-900 font-semibold mb-2">
-              Cantidad total de material reciclado (kg).
+            <h3 className="text-center text-green-800 font-bold mb-2">
+              Material Reciclado (kg)
             </h3>
-            <p className="text-center text-sm text-gray-600 mb-4">Month on Month Chart</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={materialData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" style={{ fontSize: '11px' }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="kg" fill="#60a5fa" name="Serie" />
-              </BarChart>
-            </ResponsiveContainer>
+            <p className="text-center text-xs text-gray-500 mb-4 uppercase tracking-wide">Datos en Tiempo Real</p>
+            
+            {cargando ? <p className="text-center text-gray-400 py-10">Cargando...</p> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={materialChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nombre" style={{ fontSize: '11px' }} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="kg" fill="#10b981" name="Kilogramos" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
+          {/* -------------------------------- */}
 
-          {/* Número de ciudadanos activos */}
+          {/* Número de ciudadanos (Simulado) */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Globe className="text-blue-600" size={24} />
-              </div>
-            </div>
-            <h3 className="text-center text-blue-900 font-semibold mb-2">
-              Número de ciudadanos activos que reciclaron en el último mes.
-            </h3>
-            <p className="text-center text-sm text-gray-600 mb-4">Comparación</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={ciudadanosData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="distrito" type="category" width={80} style={{ fontSize: '12px' }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="serie1" fill="#60a5fa" name="Serie 1" />
-                <Bar dataKey="serie2" fill="#1e40af" name="Serie 2" />
-              </BarChart>
-            </ResponsiveContainer>
+             <div className="flex justify-center mb-4"><div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><Globe className="text-blue-600" size={24} /></div></div>
+             <h3 className="text-center text-blue-900 font-semibold mb-2">Ciudadanos activos</h3>
+             <ResponsiveContainer width="100%" height={200}>
+               <BarChart data={ciudadanosData} layout="vertical"><CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="distrito" type="category" width={80} style={{ fontSize: '12px' }} /><Tooltip /><Legend /><Bar dataKey="serie1" fill="#60a5fa" /><Bar dataKey="serie2" fill="#1e40af" /></BarChart>
+             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Segunda fila de gráficos */}
+        {/* Segunda fila (Simulada) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Puntos verdes operativos */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Umbrella className="text-blue-600" size={24} />
-              </div>
-            </div>
-            <h3 className="text-center text-blue-900 font-semibold mb-4">
-              Número de puntos verdes operativos.
-            </h3>
-            <p className="text-center text-sm text-gray-600 mb-4">Month on Month Chart</p>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={puntosVerdesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" style={{ fontSize: '12px' }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="units" fill="#60a5fa" name="Units" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Total de recompensas */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Award className="text-blue-600" size={24} />
-              </div>
-            </div>
-            <h3 className="text-center text-blue-900 font-semibold mb-4">
-              Total de recompensas canjeadas.
-            </h3>
-            <p className="text-center text-sm text-gray-600 mb-4">Month on Month Chart</p>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={recompensasData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" style={{ fontSize: '12px' }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="units" fill="#60a5fa" name="Units" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+            <div className="bg-white rounded-lg shadow-md p-6"><ResponsiveContainer width="100%" height={250}><BarChart data={puntosVerdesData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis /><Tooltip /><Bar dataKey="units" fill="#60a5fa" /></BarChart></ResponsiveContainer></div>
+            <div className="bg-white rounded-lg shadow-md p-6"><ResponsiveContainer width="100%" height={250}><BarChart data={recompensasData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis /><Tooltip /><Bar dataKey="units" fill="#60a5fa" /></BarChart></ResponsiveContainer></div>
         </div>
 
-        {/* Botones de acción */}
-        <div className="flex gap-4 justify-center mb-8">
-          <button className="bg-amber-700 hover:bg-amber-800 text-white px-8 py-3 rounded-lg font-semibold shadow-md transition">
-            Ver reportes detallados
-          </button>
-          <button className="bg-amber-700 hover:bg-amber-800 text-white px-8 py-3 rounded-lg font-semibold shadow-md transition">
-            Ver estadísticas
-          </button>
-        </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white px-6 py-12">
+      {/* --- FOOTER RESTAURADO --- */}
+      <footer className="bg-gray-900 text-white px-6 py-12 mt-auto">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="bg-green-500 text-white px-2 py-1 rounded font-bold">E</div>
-              <span className="font-semibold">Ecopoints</span>
+              <span className="font-semibold">EcoPoints</span>
             </div>
             <p className="text-sm text-gray-400 mb-4">
-              Platform for secure and responsive banking solutions. Access your finances anywhere.
+              Plataforma integral para la gestión sostenible de residuos y recompensas ciudadanas.
             </p>
-            <div className="flex gap-3 text-gray-400">
-              <span>f</span>
-              <span>🐦</span>
-              <span>📷</span>
-              <span>in</span>
-            </div>
           </div>
-
           <div>
-            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <h4 className="font-semibold mb-4">Enlaces Rápidos</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-white">Home</a></li>
-              <li><a href="#" className="hover:text-white">About Us</a></li>
-              <li><a href="#" className="hover:text-white">Services</a></li>
-              <li><a href="#" className="hover:text-white">Online Banking</a></li>
-              <li><a href="#" className="hover:text-white">Mobile App</a></li>
-              <li><a href="#" className="hover:text-white">Contact Us</a></li>
+              <li><a href="#" className="hover:text-white">Inicio</a></li>
+              <li><a href="#" className="hover:text-white">Sobre Nosotros</a></li>
+              <li><a href="#" className="hover:text-white">Servicios</a></li>
             </ul>
           </div>
-
           <div>
             <h4 className="font-semibold mb-4">Reciclaje</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-white">Checking Accounts</a></li>
-              <li><a href="#" className="hover:text-white">Savings Accounts</a></li>
-              <li><a href="#" className="hover:text-white">Credit Cards</a></li>
-              <li><a href="#" className="hover:text-white">Loans & Mortgages</a></li>
-              <li><a href="#" className="hover:text-white">Investments</a></li>
-              <li><a href="#" className="hover:text-white">Business Banking</a></li>
+              <li><a href="#" className="hover:text-white">Puntos Verdes</a></li>
+              <li><a href="#" className="hover:text-white">Tipos de Material</a></li>
+              <li><a href="#" className="hover:text-white">Recompensas</a></li>
             </ul>
           </div>
-
           <div>
-            <h4 className="font-semibold mb-4">Contact & Support</h4>
+            <h4 className="font-semibold mb-4">Contacto</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>📍 123 Banking Avenue Financial District, New York, NY 10001</li>
-              <li>📞 1-800-BANKO-24</li>
-              <li>✉️ support@banko.com</li>
-              <li>🕐 Mon-Fri: 9AM-5PM EST</li>
+              <li>📍 Av. Principal 123, Lima</li>
+              <li>📞 (01) 555-0123</li>
+              <li>✉️ contacto@ecopoints.pe</li>
             </ul>
           </div>
         </div>
-
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-gray-800 flex justify-between text-sm text-gray-400">
-          <p>© 2025 Ecopoints. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-white">Privacy Policy</a>
-            <a href="#" className="hover:text-white">Terms of Service</a>
-            <a href="#" className="hover:text-white">Cookie Policy</a>
-            <a href="#" className="hover:text-white">Accessibility</a>
-          </div>
+          <p>© 2025 EcoPoints. Todos los derechos reservados.</p>
         </div>
       </footer>
+      {/* ------------------------- */}
+
     </div>
   );
 };

@@ -2,18 +2,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DraggableImageMap from '../components/DraggableImageMap';
-import NavbarCiudadano from '../components/NavbarCiudadano'; // La importación ya estaba correcta
+import NavbarCiudadano from '../components/NavbarCiudadano';
 
 function CitizenDashboard() {
   const userPoints = '1,250';
 
   return (
-    // 1. Usamos un Fragment (<>) para agrupar el Navbar y el contenido principal
     <>
-      {/* 2. Colocamos el Navbar aquí, al principio de todo */}
       <NavbarCiudadano />
 
-      {/* 3. El div principal ahora contiene solo el contenido de la página */}
       <div className="bg-gradient-to-b from-emerald-300 to-white text-gray-800 flex flex-col px-10">
         
         {/*---NOMBRE---*/}
@@ -21,20 +18,31 @@ function CitizenDashboard() {
           <span>🌿 EcoPoints</span>
         </h1>
         
-        {/* HERO */}
-        <section className="text-center mt-10 mb-16 px-6">
+        {/* HERO - AHORA CON BOTÓN DE ACCIÓN */}
+        <section className="text-center mt-10 mb-12 px-6">
           <h2 className="text-4xl md:text-5xl font-extrabold text-emerald-800 mb-4">Recicla. Suma. Gana.</h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-8">
             Convierte tus residuos reciclables en puntos que puedes canjear por beneficios sostenibles.
             Con <strong>EcoPoints</strong>, cada acción verde cuenta 🌎.
           </p>
+
+          {/* --- NUEVO BOTÓN DE REGISTRAR ENTREGA --- */}
+          <Link 
+            to="/registrar-entrega" 
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform transform hover:scale-105 inline-flex items-center gap-2"
+          >
+            ♻️ Registrar Entrega
+          </Link>
+          {/* ---------------------------------------- */}
+
         </section>
 
         {/* MAPA INTERACTIVO */}
         <DraggableImageMap />
 
         {/* CARDS */}
-        <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 px-8 pb-20">
+        <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 px-8 pb-20 mt-12">
+          
           {/* CARD 1: Tus Puntos */}
           <div className="hover-card bg-white rounded-3xl shadow-sm p-8 flex flex-col justify-between w-full md:w-1/3">
             <div>
@@ -80,6 +88,7 @@ function CitizenDashboard() {
               </svg>
             </div>
           </div>
+
         </div>
       </div>
     </>

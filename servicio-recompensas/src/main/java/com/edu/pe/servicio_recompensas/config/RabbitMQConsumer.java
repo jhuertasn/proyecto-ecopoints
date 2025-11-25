@@ -1,8 +1,9 @@
-// servicio-recompensas/src/main/java/com/edu/pe/config/RabbitMQConsumer.java
-package com.edu.pe.servicio_recompensas.config; // (o el paquete que él use)
+package com.edu.pe.servicio_recompensas.config;
 
-import com.edu.pe.servicio_recompensas.model.EventoEntrega; // ¡Importa el DTO!
+import com.edu.pe.servicio_recompensas.model.EventoEntrega;
+import com.edu.pe.servicio_recompensas.service.RecompensaService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,13 +13,17 @@ public class RabbitMQConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitMQConsumer.class);
 
+    @Autowired
+    private RecompensaService recompensaService; // Inyectamos el servicio AQUÍ
+
+    // Escucha la cola definida en application.properties
     @RabbitListener(queues = "${reward.rabbitmq.queue.name}")
-    public void receiveMessage(EventoEntrega evento) { // 1. Cambiado de String a EventoEntrega
+    public void receiveMessage(EventoEntrega evento) {
         log.info("📧 MENSAJE RECIBIDO (RabbitMQ): {}", evento);
-
-        // 2. Aquí iría la lógica de su servicio (ej. sumar puntos)
-        // Ejemplo: recompensaService.asignarPuntos(evento.getUsuarioId(), evento.getPeso());
-
-        log.info("Procesamiento de recompensa completado para el usuario: {}", evento.getUsuarioId());
+        
+        // Llamamos al servicio para procesar la lógica
+        recompensaService.procesarPuntos(evento.getUsuarioId(), evento.getPeso());
+        
+        log.info("✅ Puntos procesados correctamente.");
     }
 }

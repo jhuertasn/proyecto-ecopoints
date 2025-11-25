@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID; // Importante para generar IDs
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -16,48 +18,52 @@ public class EntregaService {
     private final EntregaRepository entregaRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    // Este 'record' es el "evento" que te pidieron. 
-    // Lo definimos aquí adentro porque es simple.
     private record EntregaValidadaEvent(
-        Long usuarioId, 
+        String usuarioId, 
         Double peso, 
         String material
     ) {}
 
     /**
-     * Lógica para registrar una nueva entrega (POST /entregas)
+     * Registrar nueva entrega (POST)
      */
     public Entrega registrarEntrega(Entrega nuevaEntrega) {
+        // 1. Generar ID único (UUID)
+        nuevaEntrega.setId(UUID.randomUUID().toString());
+        
+        // 2. Setear estado inicial
         nuevaEntrega.setEstado("PENDIENTE");
-        log.info("Servicio: Registrando nueva entrega...");
-        // Llama al repositorio FALSO, que le pondrá un ID y lo logueará
+        
+        log.info("Servicio: Guardando nueva entrega en MySQL: {}", nuevaEntrega);
+        
+        // 3. Guardar en base de datos real
         return entregaRepository.save(nuevaEntrega);
     }
 
     /**
-     * Lógica para validar una entrega (PUT /entregas/{id}/validar)
+     * Validar entrega (PUT)
      */
     public Entrega validarEntrega(String id) {
-        log.info("Servicio: Validando entrega con id: {}", id);
+        log.info("Servicio: Buscando en MySQL entrega con id: {}", id);
         
-        // 1. Llama al repositorio FALSO (que SIEMPRE encontrará una entrega "PENDIENTE")
+        // 1. Buscar en MySQL
         Entrega entrega = entregaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Entrega no encontrada")); // (Nunca pasará)
+                .orElseThrow(() -> new RuntimeException("Entrega no encontrada en BD"));
 
-        // 2. Actualizar el estado
+        // 2. Actualizar estado
         entrega.setEstado("VALIDADA");
         
-        // 3. "Guardar" la entrega (solo la logueará)
+        // 3. Actualizar en MySQL
         Entrega entregaValidada = entregaRepository.save(entrega);
 
-        // 4. Crear el evento/mensaje para RabbitMQ
+        // 4. Crear evento
         EntregaValidadaEvent event = new EntregaValidadaEvent(
                 entregaValidada.getUsuarioId(),
                 entregaValidada.getPeso(),
                 entregaValidada.getMaterial()
         );
 
-        // 5. Publicar el mensaje en RabbitMQ
+        // 5. Publicar en RabbitMQ
         log.info("Servicio: Publicando evento en RabbitMQ: {}", event);
         rabbitTemplate.convertAndSend(
                 RabbitConfig.EXCHANGE_NAME,

@@ -1,30 +1,29 @@
 package com.edu.pe.puntos_verdes.Controller;
 
-import com.edu.pe.puntos_verdes.Model.PuntoVerdeDTO;
-import com.edu.pe.puntos_verdes.Service.PuntoVerdeService;
-import org.springframework.http.ResponseEntity;
+import com.edu.pe.puntos_verdes.Model.PuntoVerde;
+import com.edu.pe.puntos_verdes.Repository.PuntoVerdeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/puntos-verdes")
+@CrossOrigin(origins = "*") // ¡Importante para evitar bloqueos!
 public class PuntoVerdeController {
 
-    private final PuntoVerdeService service;
+    @Autowired
+    private PuntoVerdeRepository repository;
 
-    public PuntoVerdeController(PuntoVerdeService service) {
-        this.service = service;
-    }
-
+    // GET: Devuelve todos los puntos para el mapa
     @GetMapping
-    public List<PuntoVerdeDTO> obtenerTodos() {
-        return service.obtenerPuntos();
+    public List<PuntoVerde> listarPuntos() {
+        return repository.findAll();
     }
-
+    
+    // POST: Para crear (ya lo tenías, solo adáptalo)
     @PostMapping
-    public ResponseEntity<String> crear(@RequestBody PuntoVerdeDTO dto) {
-        service.crearPunto(dto);
-        return ResponseEntity.ok("Punto Verde creado correctamente.");
+    public PuntoVerde crearPunto(@RequestBody PuntoVerde punto) {
+        return repository.save(punto);
     }
 }

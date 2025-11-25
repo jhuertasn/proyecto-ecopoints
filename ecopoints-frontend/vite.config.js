@@ -14,22 +14,22 @@ export default defineConfig({
       '/api/puntos-verdes': {
         target: 'http://localhost:3007', // Microservicio Puntos Verdes
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/puntos-verdes/, '')
+        rewrite: (path) => path.replace(/^\/api\/puntos-verdes/, '/puntos-verdes')
       },
       '/api/entregas': {
         target: 'http://localhost:3009', // Microservicio Entregas
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/entregas/, '')
+        rewrite: (path) => path.replace(/^\/api\/entregas/, '/entregas')
       },
       '/api/recompensas': {
         target: 'http://localhost:3004', // Microservicio Recompensas
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/recompensas/, '')
+        rewrite: (path) => path.replace(/^\/api\/recompensas/, '/api/recompensas')
       },
       '/api/estadisticas': {
         target: 'http://localhost:3005', // Microservicio Estadísticas
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/estadisticas/, '')
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }

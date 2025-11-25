@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class EventoEntrega {
     // Los campos DEBEN llamarse igual que en el publicador
-    private Long usuarioId;
+    private String usuarioId;
     private Double peso;
     private String material;
 }

@@ -1,88 +1,128 @@
 // src/views/GestionEntregas.jsx
-import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import DetalleEntrega from '../components/DetalleEntrega'; // Importamos el panel lateral
-
-// Datos de ejemplo
-const initialEntregas = [
-  { id: '001', usuario: 'Jordan Huertas', puntoVerde: 'Parque Integración', material: 'Plástico', peso: '10 kg', estado: 'Pendiente', recolector: 'Pedro Ramírez', materiales: [{nombre: 'Plástico', peso: '10 kg'}] },
-  { id: '002', usuario: 'Jhon Tacuri', puntoVerde: 'Calle Las Curvas', material: 'Vidrio', peso: '15 kg', estado: 'Validado', recolector: 'Ana López', materiales: [{nombre: 'Vidrio', peso: '15 kg'}] },
-  { id: '003', usuario: 'Sebastian Navarro', puntoVerde: 'Calle Hurtado', material: 'Papel', peso: '8 kg', estado: 'Confirmado', recolector: 'Pedro Ramírez', materiales: [{nombre: 'Papel', peso: '8 kg'}] },
-  { id: '004', usuario: 'Jesus Gonzales', puntoVerde: 'Av. Lima 402', material: 'Varios', peso: '6 kg', estado: 'Rechazado', recolector: 'Ana López', materiales: [{nombre: 'Cartón', peso: '4 kg'}, {nombre: 'Latas', peso: '2 kg'}] },
-];
-
-// Mapeo de estados a colores de Tailwind para la tabla
-const estadoStyles = {
-  'Pendiente': 'text-yellow-600',
-  'Validado': 'text-green-600',
-  'Confirmado': 'text-blue-600',
-  'Rechazado': 'text-red-600',
-};
+import React, { useState, useEffect, useMemo } from 'react';
+import NavbarRecolector from '../components/NavbarRecolector';
+import DetalleEntrega from '../components/DetalleEntrega';
 
 function GestionEntregas() {
-  const [entregas, setEntregas] = useState(initialEntregas);
+  const [entregas, setEntregas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
-  const [entregaSeleccionada, setEntregaSeleccionada] = useState(entregas[0]); // Seleccionamos la primera por defecto
+  const [entregaSeleccionada, setEntregaSeleccionada] = useState(null);
+  const [cargando, setCargando] = useState(true);
 
-  // Filtramos las entregas basándonos en la búsqueda.
-  // useMemo optimiza para que no se recalcule en cada render, solo si cambia la data.
+  // 1. CARGAR DATOS DEL BACKEND (Solo pendientes)
+  const cargarEntregas = async () => {
+    setCargando(true);
+    try {
+      const response = await fetch('/api/entregas/pendientes');
+      if (response.ok) {
+        const data = await response.json();
+        setEntregas(data);
+        // Si hay datos, seleccionamos el primero para mostrar detalle
+        if (data.length > 0) setEntregaSeleccionada(data[0]);
+        else setEntregaSeleccionada(null);
+      }
+    } catch (error) {
+      console.error("Error al cargar entregas:", error);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarEntregas();
+  }, []);
+
+  // 2. FUNCIÓN PARA VALIDAR (Dispara RabbitMQ en el backend)
+  const handleValidarEntrega = async () => {
+    if (!entregaSeleccionada) return;
+    
+    const confirmacion = window.confirm("¿Confirmar que recibiste esta entrega? Se asignarán puntos al ciudadano.");
+    if (!confirmacion) return;
+
+    try {
+      const response = await fetch(`/api/entregas/${entregaSeleccionada.id}/validar`, {
+        method: 'PUT'
+      });
+
+      if (response.ok) {
+        alert("✅ Entrega validada con éxito");
+        // Recargamos la lista para que esa entrega desaparezca de "pendientes"
+        cargarEntregas(); 
+      } else {
+        alert("❌ Error al validar la entrega");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error de conexión");
+    }
+  };
+
+  // Filtro de búsqueda local
   const entregasFiltradas = useMemo(() => {
     if (!busqueda) return entregas;
     return entregas.filter(e => 
-      e.usuario.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.puntoVerde.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.material.toLowerCase().includes(busqueda.toLowerCase())
+      e.material.toLowerCase().includes(busqueda.toLowerCase()) ||
+      e.id.includes(busqueda)
     );
   }, [busqueda, entregas]);
 
   return (
-    <div className="bg-gray-50 font-sans antialiased">
-      {/* Navbar */}
-      <nav className="bg-white p-4 shadow-md border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link to="/recolector" className="text-gray-600 hover:text-gray-900">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            </Link>
-            <span className="text-2xl font-bold text-gray-800">Gestión de Entregas</span>
-          </div>
-          <div><button className="bg-green-500 text-white px-5 py-2 rounded-md font-semibold hover:bg-green-600 shadow-md">+ Nueva Entrega</button></div>
-        </div>
-      </nav>
+    <div className="bg-gray-50 font-sans antialiased min-h-screen">
+      <NavbarRecolector />
 
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-8">
-        {/* Contenido Principal */}
+        {/* LISTA (Izquierda) */}
         <div className="lg:w-2/3">
-          <div className="mb-6"><input type="text" placeholder="Buscar por usuario, punto verde o material..." value={busqueda} onChange={e => setBusqueda(e.target.value)} className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 search-icon" /></div>
+            <div className="flex justify-between items-center mb-6">
+                 <h1 className="text-2xl font-bold text-gray-800">Entregas Pendientes</h1>
+                 <button onClick={cargarEntregas} className="btn btn-sm btn-ghost">🔄 Actualizar</button>
+            </div>
+            
+            <div className="mb-6">
+                <input 
+                  type="text" 
+                  placeholder="Buscar por material o ID..." 
+                  value={busqueda} 
+                  onChange={e => setBusqueda(e.target.value)} 
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" 
+                />
+            </div>
           
-          {/* Tabla de Entregas */}
-          <div className="bg-white shadow-md rounded-lg overflow-x-auto mb-8 border border-gray-200">
+          <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-800 text-white">
+              <thead className="bg-gray-100">
                 <tr>
-                  {['ID', 'Usuario', 'Punto Verde', 'Material', 'Peso', 'Estado'].map(header => (
-                    <th key={header} scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">{header}</th>
-                  ))}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Material</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peso</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {entregasFiltradas.map((entrega) => (
-                  <tr key={entrega.id} onClick={() => setEntregaSeleccionada(entrega)} className="hover:bg-gray-100 cursor-pointer">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{entrega.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{entrega.usuario}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{entrega.puntoVerde}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{entrega.material}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{entrega.peso}</td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${estadoStyles[entrega.estado]}`}>{entrega.estado}</td>
+                  <tr 
+                    key={entrega.id} 
+                    onClick={() => setEntregaSeleccionada(entrega)} 
+                    className={`cursor-pointer transition-colors ${entregaSeleccionada?.id === entrega.id ? 'bg-green-50' : 'hover:bg-gray-50'}`}
+                  >
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{entrega.material}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{entrega.peso} kg</td>
+                    <td className="px-6 py-4 text-sm"><span className="badge badge-warning badge-sm">{entrega.estado}</span></td>
                   </tr>
                 ))}
+                {entregas.length === 0 && !cargando && (
+                    <tr><td colSpan="3" className="text-center p-8 text-gray-400">No hay entregas pendientes.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Panel Lateral */}
-        <DetalleEntrega entrega={entregaSeleccionada} />
+        {/* DETALLE (Derecha) */}
+        {/* Pasamos la función handleValidarEntrega al componente hijo */}
+        <DetalleEntrega 
+            entrega={entregaSeleccionada} 
+            onValidar={handleValidarEntrega}
+        />
       </main>
     </div>
   );
