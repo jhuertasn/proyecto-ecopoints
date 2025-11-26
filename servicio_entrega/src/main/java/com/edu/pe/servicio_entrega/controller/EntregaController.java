@@ -60,6 +60,12 @@ public class EntregaController {
         return entregaRepository.findByEstado("VALIDADA");
     }
 
+    @GetMapping("/todas")
+public ResponseEntity<List<Entrega>> obtenerTodas() {
+    // Esto devuelve la lista completa de la base de datos MySQL
+    return ResponseEntity.ok(entregaService.listarTodas());
+}
+
     
     // GET: Listar todas (opcional, útil para pruebas)
     // @GetMapping

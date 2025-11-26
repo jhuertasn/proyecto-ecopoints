@@ -30,6 +30,8 @@ public class Entrega {
     
     private String fotoUrl; 
 
+    private String distrito;
+
     private String estado; // "PENDIENTE", "VALIDADA"
 
     private String comentarios;

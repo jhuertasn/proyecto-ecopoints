@@ -21,7 +21,8 @@ public class EntregaService {
     private record EntregaValidadaEvent(
         String usuarioId, 
         Double peso, 
-        String material
+        String material,
+        String distrito
     ) {}
 
     /**
@@ -60,7 +61,8 @@ public class EntregaService {
         EntregaValidadaEvent event = new EntregaValidadaEvent(
                 entregaValidada.getUsuarioId(),
                 entregaValidada.getPeso(),
-                entregaValidada.getMaterial()
+                entregaValidada.getMaterial(),
+                entregaValidada.getDistrito()
         );
 
         // 5. Publicar en RabbitMQ
@@ -72,5 +74,9 @@ public class EntregaService {
         );
 
         return entregaValidada;
+    }
+
+    public java.util.List<Entrega> listarTodas() {
+        return entregaRepository.findAll();
     }
 }
