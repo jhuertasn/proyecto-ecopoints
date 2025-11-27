@@ -5,6 +5,7 @@ import NavbarRecolector from '../components/NavbarRecolector';
 import RequestCard from '../components/RequestCard';
 import Footer from '../components/Footer'; // Agregamos Footer para consistencia
 import { Truck, CheckCircle, Clock, Package } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 // Imagen decorativa
 import camionImage from '../assets/images/camion.png';
@@ -56,29 +57,65 @@ function CollectorDashboard() {
     cargarSolicitudes();
   }, []);
 
-  // 2. VALIDAR SOLICITUD
+// 2. VALIDAR SOLICITUD (Con SweetAlert2)
   const handleAcceptRequest = async (id) => {
-    if (!window.confirm("¿Confirmar recolección?")) return;
-    try {
-      const response = await fetch(`/api/entregas/${id}/validar`, { method: 'PUT' });
-      if (response.ok) {
-        alert("✅ Recolección confirmada.");
-        // Actualizar estado localmente
-        const nuevasRequests = requests.filter(req => req.id !== id);
-        setRequests(nuevasRequests);
-        // Recalcular stats simples visualmente
-        setStats(prev => ({ ...prev, pendientes: prev.pendientes - 1 }));
+    // Pregunta de confirmación
+    const result = await Swal.fire({
+      title: '¿Confirmar recolección?',
+      text: "Esta acción validará la entrega y asignará puntos al ciudadano.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10B981', // Verde Esmeralda
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, validar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await fetch(`/api/entregas/${id}/validar`, { method: 'PUT' });
+        
+        if (response.ok) {
+          // Alerta de Éxito
+          Swal.fire({
+            title: '¡Validado!',
+            text: 'La entrega ha sido procesada exitosamente.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
+
+          // Actualizar estado localmente
+          const nuevasRequests = requests.filter(req => req.id !== id);
+          setRequests(nuevasRequests);
+          // Recalcular stats visuales
+          setStats(prev => ({ ...prev, pendientes: prev.pendientes - 1 }));
+        } else {
+          Swal.fire('Error', 'Hubo un problema al validar la entrega.', 'error');
+        }
+      } catch (error) {
+        Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
       }
-    } catch (error) {
-      alert("Error de conexión");
     }
   };
 
-  // 3. RECHAZAR SOLICITUD (Solo visual por ahora)
+  // 3. RECHAZAR SOLICITUD (Con SweetAlert2)
   const handleRejectRequest = (id) => {
-    if (window.confirm("¿Rechazar esta solicitud?")) {
-      setRequests(currentRequests => currentRequests.filter(req => req.id !== id));
-    }
+    Swal.fire({
+      title: '¿Rechazar solicitud?',
+      text: "Esta entrega desaparecerá de tu lista de pendientes.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444', // Rojo
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Sí, rechazar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setRequests(currentRequests => currentRequests.filter(req => req.id !== id));
+        Swal.fire('Rechazada', 'La solicitud ha sido eliminada.', 'info');
+      }
+    });
   };
 
  return (

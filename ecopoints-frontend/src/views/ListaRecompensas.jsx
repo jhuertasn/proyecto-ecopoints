@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import RecompensaCard from '../components/RecompensaCard';
 import NavbarCiudadano from '../components/NavbarCiudadano';
 import Footer from '../components/Footer';
+import Swal from 'sweetalert2';
 
 // --- IMPORTACIONES DE IMÁGENES ---
 import imgDesc from '../assets/images/desc.png';
@@ -76,26 +77,61 @@ function ListaRecompensas() {
   }, [navigate]);
 
   const handleCanjear = async (premio) => {
+    // Validación de puntos con alerta de error
     if (puntosUsuario < premio.puntos) {
-       alert(`❌ Te faltan ${premio.puntos - puntosUsuario} puntos.`);
+       Swal.fire({
+         icon: 'error',
+         title: 'Puntos Insuficientes',
+         text: `Te faltan ${premio.puntos - puntosUsuario} puntos para canjear "${premio.titulo}".`,
+         confirmButtonColor: '#EF4444'
+       });
        return;
     }
-    if (!confirm(`¿Canjear "${premio.titulo}" por ${premio.puntos} puntos?`)) return;
 
-    try {
-        const response = await fetch('/api/recompensas/canjear', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuarioId: usuario.usuario, premioId: premio.id })
-        });
+    // Confirmación con imagen del premio
+    const result = await Swal.fire({
+        title: '¿Canjear Recompensa?',
+        text: `Vas a canjear "${premio.titulo}" por ${premio.puntos} puntos.`,
+        imageUrl: premio.imagen, // ¡Muestra la foto del premio!
+        imageHeight: 120,
+        imageAlt: premio.titulo,
+        showCancelButton: true,
+        confirmButtonColor: '#F59E0B', // Color Amber (Dorado)
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Sí, canjear',
+        cancelButtonText: 'Cancelar'
+    });
 
-        if (response.ok) {
-            alert("🎉 ¡Canje exitoso!");
-            window.location.reload();
-        } else {
-            alert("❌ Error al canjear.");
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch('/api/recompensas/canjear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    usuarioId: usuario.usuario,
+                    premioId: premio.id
+                })
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    title: '¡Canje Exitoso!',
+                    text: 'Disfruta tu recompensa. Se ha registrado en tu historial.',
+                    icon: 'success',
+                    confirmButtonColor: '#10B981'
+                }).then(() => {
+                    // Recargamos para actualizar saldo y stock
+                    window.location.reload();
+                });
+            } else {
+                const errorMsg = await response.text();
+                Swal.fire('Error', `No se pudo realizar el canje: ${errorMsg}`, 'error');
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire('Error de conexión', 'Intenta nuevamente más tarde.', 'error');
         }
-    } catch (error) { console.error(error); }
+    }
   };
 
   return (
