@@ -19,6 +19,7 @@ import AcumulacionPuntos from './views/AcumulacionPuntos';
 import ConfirmacionEntrega from './views/ConfirmacionEntrega';
 import GestionPuntosVerdes from './views/GestionPuntosVerdes';
 import NotificacionesCampanas from './views/NotificacionesCampanas';
+import HistorialRecolector from './views/HistorialRecolector';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
         <Route path="/puntos" element={<AcumulacionPuntos />} />
         <Route path="/recolector" element={<CollectorDashboard />} />
         <Route path="/recolector/gestion" element={<GestionEntregas />} />
+        <Route path="/recolector/historial" element={<HistorialRecolector />} />
         <Route path="/recompensas" element={<ListaRecompensas />} />
         <Route path="/registrar-entrega" element={<RegistrarEntrega />} />
         <Route path="/mapa" element={<MapaPuntosVerdes />} />

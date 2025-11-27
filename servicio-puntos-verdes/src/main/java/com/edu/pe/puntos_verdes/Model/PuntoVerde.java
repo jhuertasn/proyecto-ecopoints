@@ -14,16 +14,23 @@ public class PuntoVerde {
     private String nombre;
     private String direccion; 
     private String tipo;
-    private Double latitud;     // "lat" en tu frontend
-    private Double longitud;    // "lng" en tu frontend
+    
+    // --- CAMPO NUEVO QUE FALTABA ---
+    private String distrito; 
+    // -------------------------------
 
-    // Constructor vacío y con parámetros
+    private Double latitud;
+    private Double longitud;
+
     public PuntoVerde() {}
-    public PuntoVerde(String nombre, String direccion, String tipo, Double latitud, Double longitud) {
+
+    // Constructor actualizado con distrito
+    public PuntoVerde(String nombre, String direccion, String tipo, String distrito, Double latitud, Double longitud) {
         this.nombre = nombre;
         this.direccion = direccion;
-        this.latitud = latitud;
         this.tipo = tipo;
+        this.distrito = distrito; // <--- Asignar aquí
+        this.latitud = latitud;
         this.longitud = longitud;
     }
 }

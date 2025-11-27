@@ -1,9 +1,9 @@
 // src/views/RegistrarEntrega.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // 1. IMPORTAR useLocation
 import imagenReciclaje from '../assets/images/reciclaje.jpg';
 
-// Componente de Notificación (Igual que antes)
+// Componente de Notificación
 const Notificacion = ({ tipo, mensaje }) => {
   if (!mensaje) return null;
   const baseClasses = "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold shadow-sm transition-all duration-300";
@@ -17,43 +17,63 @@ const Notificacion = ({ tipo, mensaje }) => {
 };
 
 function RegistrarEntrega() {
+  const navigate = useNavigate();
+  const location = useLocation(); // 2. ACTIVAR LA "ANTENA" PARA RECIBIR DATOS
+
+  // Estados
   const [peso, setPeso] = useState(3.0);
   const [material, setMaterial] = useState('Plástico');
-  const [puntoVerdeId, setPuntoVerdeId] = useState(''); // Estado para el punto verde seleccionado
-  const [listaPuntos, setListaPuntos] = useState([]);   // Lista de puntos verdes traídos de la API
+  
+  // Estados de Ubicación
+  const [listaPuntos, setListaPuntos] = useState([]);
+  const [puntoVerdeNombre, setPuntoVerdeNombre] = useState('');
+  const [distrito, setDistrito] = useState(''); 
+  
   const [comentarios, setComentarios] = useState('');
-  const [nombreFoto, setNombreFoto] = useState('');     // Para mostrar el nombre del archivo
+  const [nombreFoto, setNombreFoto] = useState('');
   const [notificacion, setNotificacion] = useState({ tipo: '', mensaje: '' });
   const [usuarioId, setUsuarioId] = useState(null);
-  const [distrito, setDistrito] = useState('Comas')
-
+  
   const fileInputRef = useRef(null);
-  const navigate = useNavigate();
 
-  // 1. Cargar Usuario y Puntos Verdes al inicio
+  // --- 1. CARGAR DATOS Y PROCESAR PRE-SELECCIÓN ---
   useEffect(() => {
-    // Cargar Usuario
+    // A. Validar Usuario
     const usuarioData = localStorage.getItem('usuario');
     if (usuarioData) {
       const usuario = JSON.parse(usuarioData);
-      setUsuarioId(usuario.usuario);
+      setUsuarioId(usuario.usuario); 
     } else {
-      alert("Debes iniciar sesión primero");
       navigate('/login');
     }
 
-    // Cargar Puntos Verdes (Fetch real)
+    // B. Cargar Puntos Verdes de la API
     fetch('/api/puntos-verdes')
       .then(res => res.json())
       .then(data => {
+        console.log("📦 Datos recibidos de API:", data);
         setListaPuntos(data);
+        
         if (data.length > 0) {
-          setPuntoVerdeId(data[0].nombre); // Seleccionar el primero por defecto (o usar ID)
+            let puntoInicial = data[0];
+
+            // 3. LÓGICA DE PRE-SELECCIÓN (Si venimos del mapa)
+            if (location.state?.puntoPreseleccionado) {
+                console.log("📍 Vengo del mapa con:", location.state.puntoPreseleccionado);
+                const preseleccionado = data.find(p => p.nombre === location.state.puntoPreseleccionado);
+                if (preseleccionado) {
+                    puntoInicial = preseleccionado;
+                }
+            }
+
+            // 4. SETEAR VALORES INICIALES (Punto y Distrito)
+            setPuntoVerdeNombre(puntoInicial.nombre);
+            setDistrito(puntoInicial.distrito || 'Sin Distrito Asignado');
         }
       })
       .catch(err => console.error("Error cargando puntos:", err));
-
-  }, [navigate]);
+      
+  }, [navigate, location]); // Agregamos 'location' a las dependencias
 
   // Limpiar notificación
   useEffect(() => {
@@ -63,57 +83,63 @@ function RegistrarEntrega() {
     }
   }, [notificacion]);
 
+  // --- MANEJADORES ---
+
+  // Cambio manual en el dropdown
+  const handlePuntoChange = (e) => {
+    const nombreSeleccionado = e.target.value;
+    setPuntoVerdeNombre(nombreSeleccionado);
+
+    const puntoEncontrado = listaPuntos.find(p => p.nombre === nombreSeleccionado);
+    if (puntoEncontrado) {
+        setDistrito(puntoEncontrado.distrito || 'Sin Distrito Asignado');
+    }
+  };
+
   const handleIncrementarPeso = () => setPeso(p => parseFloat((p + 0.5).toFixed(1)));
   const handleDecrementarPeso = () => setPeso(p => Math.max(0.5, parseFloat((p - 0.5).toFixed(1))));
-
+  
   const handleAdjuntarImagen = () => fileInputRef.current.click();
-
-  // Manejar selección de archivo
+  
   const handleFileChange = (e) => {
-    if (e.target.files[0]) {
-      setNombreFoto(e.target.files[0].name);
-    }
+    if (e.target.files[0]) setNombreFoto(e.target.files[0].name);
   };
 
   const handleRegistrar = async () => {
     if (!usuarioId) {
-      setNotificacion({ tipo: 'error', mensaje: 'Error: Usuario no identificado' });
-      return;
+        setNotificacion({ tipo: 'error', mensaje: 'Error: Usuario no identificado' });
+        return;
     }
     setNotificacion({ tipo: 'pending', mensaje: 'Enviando entrega...' });
 
     const nuevaEntrega = {
-      usuarioId: usuarioId,
-      material: material,
-      peso: peso,
-      distrito: distrito,
-      // Usamos el punto verde seleccionado. 
-      // Si tu backend de entregas no tiene campo para 'puntoVerde', puedes 
-      // concatenarlo en los comentarios o pedir que agreguen el campo.
-      // Por ahora, lo mandamos en comentarios si no hay campo específico.
-      fotoUrl: nombreFoto ? `http://bucket-falso.com/${nombreFoto}` : "http://foto.com/default.png",
-      comentarios: comentarios + ` (Punto: ${puntoVerdeId})`
+        usuarioId: usuarioId,
+        material: material,
+        peso: peso,
+        distrito: distrito,
+        fotoUrl: nombreFoto ? `http://bucket-falso.com/${nombreFoto}` : "http://foto.com/default.png",
+        comentarios: comentarios + ` (Punto: ${puntoVerdeNombre})` 
     };
 
     try {
-      const response = await fetch('/api/entregas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nuevaEntrega)
-      });
+        const response = await fetch('/api/entregas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevaEntrega)
+        });
 
-      if (response.ok) {
-        setNotificacion({ tipo: 'success', mensaje: '¡Entrega registrada con éxito!' });
-        setTimeout(() => navigate('/confirmacion-entrega'), 1500);
-      } else {
-        setNotificacion({ tipo: 'error', mensaje: 'Error al registrar la entrega' });
-      }
+        if (response.ok) {
+            setNotificacion({ tipo: 'success', mensaje: '¡Entrega registrada con éxito!' });
+            setTimeout(() => navigate('/confirmacion-entrega'), 1500);
+        } else {
+            setNotificacion({ tipo: 'error', mensaje: 'Error al registrar la entrega' });
+        }
     } catch (error) {
-      console.error(error);
-      setNotificacion({ tipo: 'error', mensaje: 'Error de conexión' });
+        console.error(error);
+        setNotificacion({ tipo: 'error', mensaje: 'Error de conexión' });
     }
   };
-
+  
   const handleLimpiar = () => {
     setPeso(3.0);
     setComentarios('');
@@ -122,10 +148,9 @@ function RegistrarEntrega() {
     if (fileInputRef.current) fileInputRef.current.value = "";
     setNotificacion({ tipo: 'error', mensaje: 'Campos limpiados' });
   };
-
+  
   return (
     <div className="bg-gradient-to-b from-emerald-300 to-white text-gray-800 min-h-screen flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-8 py-4 bg-white shadow-md">
         <Link to="/ciudadano" className="text-gray-700 text-2xl hover:scale-110 transition-transform">←</Link>
         <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-2">
@@ -135,7 +160,7 @@ function RegistrarEntrega() {
           <Notificacion tipo={notificacion.tipo} mensaje={notificacion.mensaje} />
         </div>
       </header>
-
+      
       <main className="flex-grow flex items-center justify-center px-8 py-10">
         <div className="flex flex-col lg:flex-row gap-8 w-full max-w-7xl">
           {/* Imagen */}
@@ -147,22 +172,22 @@ function RegistrarEntrega() {
 
           {/* Contenido */}
           <div className="w-full lg:w-1/2 flex flex-col gap-6">
-
+            
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Detalles */}
               <div className="bg-white shadow-lg rounded-xl p-6 flex-1 space-y-3">
                 <h2 className="text-xl font-semibold mb-2 text-emerald-900">Detalles</h2>
-
+                
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Fecha</span>
-                  <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">
-                    {new Date().toLocaleDateString()}
-                  </span>
+                    <span className="text-sm font-medium">Fecha</span>
+                    <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">
+                        {new Date().toLocaleDateString()}
+                    </span>
                 </div>
 
                 <div className="form-control w-full">
                   <label className="label"><span className="label-text font-semibold">Material</span></label>
-                  <select
+                  <select 
                     className="select select-bordered select-sm w-full"
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
@@ -178,33 +203,28 @@ function RegistrarEntrega() {
                 {/* SELECTOR DINÁMICO DE PUNTOS VERDES */}
                 <div className="form-control w-full">
                   <label className="label"><span className="label-text font-semibold">Punto Verde</span></label>
-                  <select
+                  <select 
                     className="select select-bordered select-sm w-full"
-                    value={puntoVerdeId}
-                    onChange={(e) => setPuntoVerdeId(e.target.value)}
+                    value={puntoVerdeNombre}
+                    onChange={handlePuntoChange}
                   >
-                    <option value="" disabled>Selecciona un punto</option>
+                    {listaPuntos.length === 0 && <option disabled>Cargando puntos...</option>}
                     {listaPuntos.map(p => (
-                      <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                        <option key={p.id} value={p.nombre}>{p.nombre}</option>
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="form-control w-full mt-2">
-                <label className="label"><span className="label-text font-semibold">Distrito</span></label>
-                <select
-                  className="select select-bordered select-sm w-full"
-                  value={distrito}
-                  onChange={(e) => setDistrito(e.target.value)}
-                >
-                  <option value="Comas">Comas</option>
-                  <option value="Los Olivos">Los Olivos</option>
-                  <option value="Independencia">Independencia</option>
-                  <option value="San Martin de Porres">San Martin de Porres</option>
-                  <option value="Carabayllo">Carabayllo</option>
-                  {/* Agrega más distritos si es necesario */}
-                </select>
+                {/* CAMPO DE DISTRITO (SOLO LECTURA) */}
+                <div className="form-control w-full mt-2">
+                  <label className="label"><span className="label-text font-semibold text-gray-500">Distrito</span></label>
+                  <input 
+                    type="text" 
+                    className="input input-bordered input-sm w-full bg-gray-200 text-gray-600 cursor-not-allowed focus:outline-none"
+                    value={distrito}
+                    readOnly 
+                  />
+                </div>
               </div>
 
               {/* Peso y Foto */}
@@ -219,16 +239,7 @@ function RegistrarEntrega() {
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-700 mb-2 text-sm">Evidencia</h3>
-
-                  {/* INPUT FILE OCULTO */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept="image/*"
-                  />
-
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
                   <button onClick={handleAdjuntarImagen} className="btn btn-outline btn-success btn-sm w-full">
                     {nombreFoto ? '✅ Foto cargada' : '📷 Adjuntar Foto'}
                   </button>
@@ -240,9 +251,9 @@ function RegistrarEntrega() {
             {/* Comentarios */}
             <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col justify-between">
               <h2 className="text-xl font-semibold mb-2 text-emerald-900">Comentarios</h2>
-              <textarea
+              <textarea 
                 className="textarea textarea-bordered w-full focus:outline-emerald-500 mb-4"
-                rows="3"
+                rows="3" 
                 placeholder="Escribe tus observaciones..."
                 value={comentarios}
                 onChange={(e) => setComentarios(e.target.value)}

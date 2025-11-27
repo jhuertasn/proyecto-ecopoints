@@ -23,7 +23,7 @@ function NavbarMunicipalidad() {
         <div className="flex gap-6 text-sm hidden md:flex">
           <Link to="/dashboard" className="hover:text-blue-200 transition">Inicio</Link>
           <Link to="/reporte" className="hover:text-blue-200 transition">Reportes</Link>
-          <Link to="/estadisticas" className="hover:text-blue-200 transition">Estadísticas</Link>
+         { /*<Link to="/estadisticas" className="hover:text-blue-200 transition">Estadísticas</Link>*/}
           <Link to="/gestion-puntos-verdes" className="hover:text-blue-200 transition">Gestión de Puntos</Link>
         </div>
       </div>

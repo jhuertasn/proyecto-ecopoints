@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RecompensaCard from '../components/RecompensaCard';
 import NavbarCiudadano from '../components/NavbarCiudadano';
+import Footer from '../components/Footer';
 
 // --- IMPORTACIONES DE IMÁGENES ---
 import imgDesc from '../assets/images/desc.png';
@@ -24,30 +25,14 @@ import imgTaller from '../assets/images/taller.png';
 import imgEvento from '../assets/images/evento.png';
 import imgListado from '../assets/images/listado.png';
 
-// --- DICCIONARIO DE IMÁGENES ---
-// Relaciona el nombre que viene de la Base de Datos con la imagen importada
+// Mapeo de imágenes
 const imageMap = {
-  "Botella Ecológica": imgKit,
-  "Bono Descuento S/10": imgCupon,
-  "Descuento Eco-Tienda": imgDesc,
-  "Cupón Online": imgCupon,
-  "Crédito Eco-Transporte": imgBus,
-  "Entrada Cultural": imgEntradas,
-  "Comida Saludable": imgComida,
-  "Semillas Urbanas": imgSemillas,
-  "Kit Reutilizable": imgKit,
-  "Accesorio Reciclado": imgMochila,
-  "Planta un Árbol": imgArbol,
-  "Medalla Digital": imgMedalla,
-  "Ranking Mensual": imgCompetencia,
-  "Compartir Logros": imgLogro,
-  "Cashback Digital": imgCashback,
-  "Tarjeta Prepago": imgTarjeta,
-  "Donación a ONG": imgDonacion,
-  "Talleres Gratis": imgTaller,
-  "Eventos Verdes": imgEvento,
-  "Top Reciclador": imgListado,
-  // Imagen por defecto si el nombre no coincide con ninguno
+  "Descuento Eco-Tienda": imgDesc, "Cupón Online": imgCupon, "Crédito Eco-Transporte": imgBus,
+  "Entrada Cultural": imgEntradas, "Comida Saludable": imgComida, "Semillas Urbanas": imgSemillas,
+  "Kit Reutilizable": imgKit, "Accesorio Reciclado": imgMochila, "Planta un Árbol": imgArbol,
+  "Medalla Digital": imgMedalla, "Ranking Mensual": imgCompetencia, "Compartir Logros": imgLogro,
+  "Cashback Digital": imgCashback, "Tarjeta Prepago": imgTarjeta, "Donación a ONG": imgDonacion,
+  "Talleres Gratis": imgTaller, "Eventos Verdes": imgEvento, "Top Reciclador": imgListado,
   "default": imgMedalla 
 };
 
@@ -58,130 +43,107 @@ function ListaRecompensas() {
   const [usuario, setUsuario] = useState(null);
   const navigate = useNavigate();
 
-  // 1. Cargar Usuario, Puntos y Premios al iniciar
   useEffect(() => {
     const cargarDatos = async () => {
-        // A. Validar sesión
         const usuarioData = localStorage.getItem('usuario');
         if (!usuarioData) { navigate('/login'); return; }
-        
         const user = JSON.parse(usuarioData);
         setUsuario(user);
 
         try {
-            // B. Obtener Puntos del Usuario
-            // Nota: Asegúrate de que el endpoint en tu backend sea /puntos/{id}
+            // 1. Puntos (Usando el nombre de usuario)
             const resPuntos = await fetch(`/api/recompensas/puntos/${user.usuario}`);
-            if (resPuntos.ok) {
-                const puntos = await resPuntos.json();
-                setPuntosUsuario(puntos);
-            }
+            if (resPuntos.ok) setPuntosUsuario(await resPuntos.json());
 
-            // C. Obtener Lista de Premios
+            // 2. Premios
             const resPremios = await fetch('/api/recompensas/premios');
             if (resPremios.ok) {
-                const dataPremios = await resPremios.json();
-                
-                // Mapeamos los datos del backend al formato que espera tu tarjeta
-                const premiosFormateados = dataPremios.map(p => ({
+                const data = await resPremios.json();
+                // Mapeamos datos + imagen
+                const lista = data.map(p => ({
                     id: p.id,
-                    titulo: p.nombre, // Backend: 'nombre' -> Frontend: 'titulo'
-                    descripcion: `Stock disponible: ${p.stock}`,
+                    titulo: p.nombre,
+                    descripcion: `Stock: ${p.stock} und.`,
                     puntos: p.costoPuntos,
-                    // Asignamos imagen según el nombre, o una por defecto si no encuentra coincidencia
-                    imagen: imageMap[p.nombre] || imageMap["default"] 
+                    imagen: imageMap[p.nombre] || imageMap["default"]
                 }));
-                
-                setPremios(premiosFormateados);
+                setPremios(lista);
             }
-        } catch (error) {
-            console.error("Error cargando datos:", error);
-        } finally {
-            setCargando(false);
-        }
+        } catch (err) { console.error(err); } 
+        finally { setCargando(false); }
     };
     cargarDatos();
   }, [navigate]);
 
-  // 2. Lógica de Canje
-  const handleCanjearRecompensa = async (premio) => {
-    // Validaciones locales
+  const handleCanjear = async (premio) => {
     if (puntosUsuario < premio.puntos) {
-       alert(`❌ No tienes suficientes puntos. Necesitas ${premio.puntos} y tienes ${puntosUsuario}.`);
+       alert(`❌ Te faltan ${premio.puntos - puntosUsuario} puntos.`);
        return;
     }
-
-    if (!window.confirm(`¿Estás seguro de canjear "${premio.titulo}" por ${premio.puntos} puntos?`)) {
-        return;
-    }
+    if (!confirm(`¿Canjear "${premio.titulo}" por ${premio.puntos} puntos?`)) return;
 
     try {
         const response = await fetch('/api/recompensas/canjear', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                usuarioId: usuario.id,
-                premioId: premio.id
-            })
+            body: JSON.stringify({ usuarioId: usuario.usuario, premioId: premio.id })
         });
 
         if (response.ok) {
-            alert("🎉 ¡Canje exitoso! Disfruta tu recompensa.");
-            // Recargamos la página para ver los puntos actualizados
+            alert("🎉 ¡Canje exitoso!");
             window.location.reload();
         } else {
-            const errorMsg = await response.text();
-            alert("❌ Error al canjear: " + errorMsg);
+            alert("❌ Error al canjear.");
         }
-    } catch (error) {
-        console.error("Error de conexión:", error);
-        alert("Error al conectar con el servidor de recompensas.");
-    }
+    } catch (error) { console.error(error); }
   };
 
   return (
-    <div className="bg-gray-100 font-sans antialiased min-h-screen">
-      {/* Navbar del Ciudadano */}
+    <div className="bg-gray-100 font-sans min-h-screen flex flex-col">
       <NavbarCiudadano />
       
-      {/* Header con Saldo de Puntos */}
-      <header className="bg-white shadow-sm p-4 border-b border-gray-200 sticky top-[72px] z-40">
+      {/* Header Puntos */}
+      <div className="bg-white shadow-sm p-4 border-b border-gray-200 sticky top-[72px] z-40">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800">Catálogo de Recompensas</h1>
+          <h1 className="text-xl font-bold text-gray-800">Catálogo</h1>
           <div className="bg-emerald-100 text-emerald-800 px-5 py-2 rounded-full font-bold shadow-sm border border-emerald-200">
              Tus Puntos: <span className="text-xl">{puntosUsuario}</span>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-extrabold text-gray-900 mb-8">Recompensas Disponibles</h2>
-
+      <main className="max-w-6xl mx-auto py-8 px-4 flex-grow w-full">
         {cargando ? (
-            <div className="text-center py-12 text-gray-500">Cargando premios...</div>
+            <div className="text-center py-12 text-gray-500">Cargando catálogo...</div>
         ) : (
-            /* Mostramos todos los premios en una sola grilla */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {premios.length > 0 ? (
-                  premios.map(recompensa => (
-                    <RecompensaCard 
-                      key={recompensa.id} 
-                      recompensa={recompensa} 
-                      onCanjear={handleCanjearRecompensa}
-                    />
-                  ))
-              ) : (
-                  <p className="col-span-full text-center text-gray-500">No hay premios disponibles en este momento.</p>
-              )}
-            </div>
+            <>
+                {/* SECCIÓN: RECOMENDADOS (Baratos) */}
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-6">🌱 Para empezar (Menos de 200 pts)</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
+                    {premios.filter(p => p.puntos > 0 && p.puntos <= 200).map(p => (
+                        <RecompensaCard key={p.id} recompensa={p} onCanjear={handleCanjear} />
+                    ))}
+                </div>
+
+                {/* SECCIÓN: NIVEL EXPERTO */}
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-6">🏆 Nivel Experto (+200 pts)</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-10">
+                    {premios.filter(p => p.puntos > 200).map(p => (
+                        <RecompensaCard key={p.id} recompensa={p} onCanjear={handleCanjear} />
+                    ))}
+                </div>
+
+                {/* SECCIÓN: LOGROS (Gratis) */}
+                <h2 className="text-2xl font-extrabold text-gray-900 mb-6">🏅 Logros y Comunidad</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {premios.filter(p => p.puntos === 0).map(p => (
+                        <RecompensaCard key={p.id} recompensa={p} onCanjear={handleCanjear} />
+                    ))}
+                </div>
+            </>
         )}
       </main>
-
-      <footer className="bg-gray-800 text-gray-300 py-8 mt-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; {new Date().getFullYear()} EcoPoints — Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

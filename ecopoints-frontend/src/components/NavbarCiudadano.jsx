@@ -1,17 +1,33 @@
 // src/components/NavbarCiudadano.jsx
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // 1. Importamos useNavigate
+import React, { useState, useEffect } from 'react'; // 1. Importamos los hooks
+import { Link, useNavigate } from 'react-router-dom';
 
 function NavbarCiudadano() {
-  const navigate = useNavigate(); // 2. Inicializamos el hook de navegación
+  const navigate = useNavigate();
+  
+  // 2. Estado para guardar el nombre (valor por defecto 'Ciudadano')
+  const [nombreUsuario, setNombreUsuario] = useState('Ciudadano');
 
-  // 3. Función para cerrar sesión
+  // 3. Al cargar, leemos el usuario del localStorage
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem('usuario');
+    if (usuarioGuardado) {
+      try {
+        const datos = JSON.parse(usuarioGuardado);
+        // Si el objeto tiene el campo 'usuario', lo usamos
+        if (datos.usuario) {
+          setNombreUsuario(datos.usuario);
+        }
+      } catch (error) {
+        console.error("Error al leer usuario", error);
+      }
+    }
+  }, []);
+
+  // 4. Función para cerrar sesión
   const handleLogout = () => {
-    // Borramos los datos del usuario guardados en el navegador
     localStorage.removeItem('usuario');
-    
-    // Redirigimos al Portal de inicio
-    navigate('/');
+    navigate('/'); // Redirige al inicio (Login)
   };
 
   return (
@@ -24,7 +40,6 @@ function NavbarCiudadano() {
             <span>🌿</span> EcoPoints
           </Link>
           
-          {/* Menú de navegación (oculto en móviles muy pequeños si quisieras, aquí visible) */}
           <div className="hidden md:flex space-x-2 text-sm">
             <Link to="/ciudadano" className="hover:bg-emerald-600 px-3 py-2 rounded-md transition">Dashboard</Link>
             <Link to="/mapa" className="hover:bg-emerald-600 px-3 py-2 rounded-md transition">Mapa</Link>
@@ -33,16 +48,20 @@ function NavbarCiudadano() {
           </div>
         </div>
 
-        {/* Grupo Derecho: Botón de Cerrar Sesión */}
+        {/* Grupo Derecho: Usuario y Cerrar Sesión */}
         <div className="flex items-center gap-4">
-            {/* Mensaje de bienvenida opcional */}
-            {/* <span className="text-xs text-emerald-200 hidden sm:block">Hola, Ciudadano</span> */}
+            
+            {/* Muestra el nombre del usuario */}
+            <div className="flex items-center gap-2 bg-emerald-800/30 px-3 py-1 rounded-full">
+                <span className="text-xl">👤</span>
+                <span className="text-sm font-medium">{nombreUsuario}</span>
+            </div>
             
             <button 
                 onClick={handleLogout}
                 className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2 px-4 rounded-full shadow-sm transition-colors flex items-center gap-1"
             >
-                <span>🚪</span> Cerrar sesión
+                <span>🚪</span> Cerrar Cesión
             </button>
         </div>
 

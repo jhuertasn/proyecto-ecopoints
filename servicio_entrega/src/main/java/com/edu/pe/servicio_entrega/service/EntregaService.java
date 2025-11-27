@@ -50,6 +50,11 @@ public class EntregaService {
         // 1. Buscar en MySQL
         Entrega entrega = entregaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Entrega no encontrada en BD"));
+          // --- PROTECCIÓN DE CONCURRENCIA  ---
+        // Si la entrega YA NO es 'PENDIENTE', lanzamos error.      
+        if (!"PENDIENTE".equals(entrega.getEstado())) {
+            throw new RuntimeException("¡Error! Esta entrega ya fue validada por otro recolector.");
+        }
 
         // 2. Actualizar estado
         entrega.setEstado("VALIDADA");

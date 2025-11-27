@@ -38,8 +38,9 @@ function NavbarRecolector() {
           <Link to="/recolector" className="text-lg font-bold">🌿 EcoPoints</Link>
           <div className="hidden md:flex space-x-6">
             <Link to="/recolector" className="hover:text-green-400">Inicio</Link>
-            <Link to="/recolector/gestion" className="hover:text-green-400">Gestión</Link>
-            <Link to="/reporte" className="hover:text-green-400">Reportes</Link>
+            <Link to="/recolector/gestion" className="hover:text-green-400">Gestión de Entregas</Link>
+            <Link to="/recolector/historial" className="hover:text-green-400">Historial</Link>
+            
           </div>
         </div>
 

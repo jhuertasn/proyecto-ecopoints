@@ -33,10 +33,40 @@ public class RecompensaService {
     // --- INICIALIZACIÓN DE DATOS ---
     @PostConstruct
     public void init() {
+        // Solo llenamos si está vacío
         if (premioRepository.count() == 0) {
-            premioRepository.save(new Premio("P001", "Botella Ecológica", 500, 10, "http://imagen.com/botella.png"));
-            premioRepository.save(new Premio("P002", "Bono Descuento S/10", 1000, 5, "http://imagen.com/bono.png"));
-            log.info("🎁 Premios de prueba insertados en MySQL.");
+            log.info("🎁 Cargando catálogo completo de premios...");
+
+            // 1. Beneficios Prácticos
+            premioRepository.save(new Premio("P001", "Descuento Eco-Tienda", 200, 50, "img_desc"));
+            premioRepository.save(new Premio("P002", "Cupón Online", 250, 30, "img_cupon"));
+            premioRepository.save(new Premio("P003", "Crédito Eco-Transporte", 150, 100, "img_bus"));
+            premioRepository.save(new Premio("P004", "Entrada Cultural", 300, 20, "img_entradas"));
+            premioRepository.save(new Premio("P005", "Comida Saludable", 280, 40, "img_comida"));
+
+            // 2. Ecológicas
+            premioRepository.save(new Premio("P006", "Semillas Urbanas", 180, 200, "img_semillas"));
+            premioRepository.save(new Premio("P007", "Kit Reutilizable", 350, 15, "img_kit")); // La botella
+            premioRepository.save(new Premio("P008", "Accesorio Reciclado", 220, 25, "img_mochila"));
+            premioRepository.save(new Premio("P009", "Planta un Árbol", 500, 1000, "img_arbol"));
+
+            // 3. Gamificación (Costo 0 o bajo)
+            premioRepository.save(new Premio("P010", "Medalla Digital", 50, 9999, "img_medalla"));
+            premioRepository.save(new Premio("P011", "Ranking Mensual", 0, 9999, "img_competencia"));
+            premioRepository.save(new Premio("P012", "Compartir Logros", 0, 9999, "img_logro"));
+
+            // 4. Financieras (¡IMPORTANTE PARA TU PRUEBA!)
+            premioRepository.save(new Premio("P013", "Cashback Digital", 400, 50, "img_cashback"));
+            premioRepository.save(new Premio("P014", "Tarjeta Prepago", 550, 20, "img_tarjeta"));
+            premioRepository.save(new Premio("P015", "Donación a ONG", 100, 9999, "img_donacion")); // <--- ESTE ES EL
+                                                                                                    // DE 100 PUNTOS
+
+            // 5. Sociales
+            premioRepository.save(new Premio("P016", "Talleres Gratis", 200, 30, "img_taller"));
+            premioRepository.save(new Premio("P017", "Eventos Verdes", 180, 50, "img_evento"));
+            premioRepository.save(new Premio("P018", "Top Reciclador", 0, 9999, "img_listado"));
+
+            log.info("✅ Premios insertados en MySQL.");
         }
     }
 
@@ -84,10 +114,16 @@ public class RecompensaService {
         premio.setStock(premio.getStock() - 1);
         premioRepository.save(premio);
 
-        Canje nuevoCanje = new Canje(UUID.randomUUID().toString(), premioId, usuarioId, premio.getCostoPuntos(), LocalDateTime.now());
+        Canje nuevoCanje = new Canje(UUID.randomUUID().toString(), premioId, usuarioId, premio.getCostoPuntos(),
+                LocalDateTime.now());
         return canjeRepository.save(nuevoCanje);
     }
 
-    public List<Premio> obtenerPremios() { return premioRepository.findAll(); }
-    public List<Canje> obtenerHistorialCanjes() { return canjeRepository.findAll(); }
+    public List<Premio> obtenerPremios() {
+        return premioRepository.findAll();
+    }
+
+    public List<Canje> obtenerHistorialCanjes() {
+        return canjeRepository.findAll();
+    }
 }
